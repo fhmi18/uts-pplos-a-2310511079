@@ -21,15 +21,12 @@ const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    // Beberapa endpoint tidak memerlukan token (login, register)
+    // Beberapa endpoint tidak memerlukan token (login, register, oauth)
     return next();
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your_secret_key",
-    );
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     req.user = decoded;
     next();
   } catch (error) {

@@ -3,7 +3,13 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
+const bcrypt = require("bcryptjs");
 const db = require("./config/database");
+const {
+  verifyJWT,
+  addToBlacklist,
+  tokenBlacklist,
+} = require("./middleware/jwtMiddleware");
 
 dotenv.config();
 
@@ -75,14 +81,90 @@ app.get("/api/auth/health", async (req, res) => {
   }
 });
 
-// Login - Generate Access & Refresh Token
+// Register - Create New User with Email & Password
+app.post("/api/auth/register", async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      status: "error",
+      message: "Name, email, and password are required",
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({
+      status: "error",
+      message: "Password must be at least 6 characters long",
+    });
+  }
+
+  try {
+    const connection = await db.getConnection();
+
+    // Check if email already exists
+    const [existingUsers] = await connection.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email],
+    );
+
+    if (existingUsers.length > 0) {
+      connection.release();
+      return res.status(409).json({
+        status: "error",
+        message: "Email already registered",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const [result] = await connection.query(
+      "INSERT INTO users (name, email, password, oauth_provider, created_at) VALUES (?, ?, ?, ?, NOW())",
+      [name, email, hashedPassword, "local"],
+    );
+
+    const userId = result.insertId;
+    connection.release();
+
+    // Generate tokens
+    const user = { id: userId, email };
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Save refresh token
+    await saveRefreshToken(userId, refreshToken);
+
+    res.status(201).json({
+      status: "success",
+      message: "User registered successfully",
+      accessToken,
+      refreshToken,
+      user: {
+        id: userId,
+        name,
+        email,
+      },
+    });
+  } catch (error) {
+    console.error("Register error:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Registration failed",
+      error: error.message,
+    });
+  }
+});
+
+// Login - Email/Password Authentication with Validation
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email) {
+  if (!email || !password) {
     return res.status(400).json({
       status: "error",
-      message: "Email is required",
+      message: "Email and password are required",
     });
   }
 
@@ -102,6 +184,26 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const user = users[0];
+
+    // Validate password if user has local password
+    if (user.password) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        connection.release();
+        return res.status(401).json({
+          status: "error",
+          message: "Invalid email or password",
+        });
+      }
+    } else {
+      // User only has OAuth provider, cannot login with password
+      connection.release();
+      return res.status(403).json({
+        status: "error",
+        message:
+          "This account uses OAuth provider login. Please use GitHub OAuth.",
+      });
+    }
 
     // Generate tokens
     const accessToken = generateAccessToken(user);
@@ -192,6 +294,72 @@ app.post("/api/auth/refresh", async (req, res) => {
     res.status(401).json({
       status: "error",
       message: "Invalid refresh token",
+      error: error.message,
+    });
+  }
+});
+
+// Logout - Invalidate Access Token (Blacklist)
+app.post("/api/auth/logout", verifyJWT, async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (token) {
+      // Add token to blacklist
+      addToBlacklist(token);
+    }
+
+    const { refreshToken } = req.body;
+
+    if (refreshToken) {
+      // Delete refresh token from database
+      const connection = await db.getConnection();
+      await connection.query("DELETE FROM refresh_tokens WHERE token = ?", [
+        refreshToken,
+      ]);
+      connection.release();
+    }
+
+    res.json({
+      status: "success",
+      message: "Logout successful. Token invalidated.",
+    });
+  } catch (error) {
+    console.error("Logout error:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Logout failed",
+      error: error.message,
+    });
+  }
+});
+
+// Get User Profile (Protected Endpoint Example)
+app.get("/api/auth/profile", verifyJWT, async (req, res) => {
+  try {
+    const connection = await db.getConnection();
+    const [users] = await connection.query(
+      "SELECT id, name, email, avatar_url, oauth_provider FROM users WHERE id = ?",
+      [req.user.id],
+    );
+    connection.release();
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      status: "success",
+      message: "User profile retrieved",
+      user: users[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve profile",
       error: error.message,
     });
   }
