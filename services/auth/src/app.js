@@ -530,10 +530,257 @@ app.get("/api/auth/callback/github", async (req, res) => {
   }
 });
 
+app.get("/api/auth/google/login", (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL;
+  const scope = "openid email profile";
+  const state = Buffer.from(Math.random().toString())
+    .toString("base64")
+    .substring(0, 32);
+
+  if (!clientId || !redirectUri) {
+    return res.status(400).json({
+      status: "error",
+      message: "Google OAuth not configured",
+    });
+  }
+
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
+  res.redirect(googleAuthUrl);
+});
+
+// Google OAuth Callback
+app.get("/api/auth/callback/google", async (req, res) => {
+  const code = req.query.code;
+
+  if (!code) {
+    return res.status(400).json({
+      status: "error",
+      message: "Missing authorization code",
+    });
+  }
+
+  try {
+    const tokenResponse = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      {
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        code: code,
+        redirect_uri: process.env.GOOGLE_CALLBACK_URL,
+        grant_type: "authorization_code",
+      },
+    );
+
+    const googleAccessToken = tokenResponse.data.access_token;
+
+    if (!googleAccessToken) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to get access token from Google",
+      });
+    }
+
+    const userResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+        },
+      },
+    );
+
+    const googleUser = userResponse.data;
+
+    const connection = await db.getConnection();
+    const [existingUser] = await connection.query(
+      "SELECT * FROM users WHERE email = ? OR oauth_id = ?",
+      [googleUser.email, googleUser.id.toString()],
+    );
+
+    let userId;
+
+    if (existingUser.length > 0) {
+      userId = existingUser[0].id;
+      await connection.query(
+        "UPDATE users SET oauth_provider = ?, oauth_id = ?, avatar_url = ?, updated_at = NOW() WHERE id = ?",
+        ["google", googleUser.id.toString(), googleUser.picture, userId],
+      );
+    } else {
+      const [result] = await connection.query(
+        "INSERT INTO users (name, email, oauth_provider, oauth_id, avatar_url, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
+        [
+          googleUser.name,
+          googleUser.email,
+          "google",
+          googleUser.id.toString(),
+          googleUser.picture,
+        ],
+      );
+      userId = result.insertId;
+    }
+
+    connection.release();
+
+    // Generate tokens
+    const user = { id: userId, email: googleUser.email };
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    await saveRefreshToken(userId, refreshToken);
+
+    res.json({
+      status: "success",
+      message: "Google authentication successful",
+      accessToken,
+      refreshToken,
+      user: {
+        id: userId,
+        email: googleUser.email,
+        name: googleUser.name,
+        avatar: googleUser.picture,
+        provider: "google",
+      },
+    });
+  } catch (error) {
+    console.error("[Auth] Google OAuth Error:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Google authentication failed",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/api/auth/facebook/login", (req, res) => {
+  const clientId = process.env.FACEBOOK_APP_ID;
+  const redirectUri = process.env.FACEBOOK_CALLBACK_URL;
+  const scope = "email,public_profile";
+  const state = Buffer.from(Math.random().toString())
+    .toString("base64")
+    .substring(0, 32);
+
+  if (!clientId || !redirectUri) {
+    return res.status(400).json({
+      status: "error",
+      message: "Facebook OAuth not configured",
+    });
+  }
+
+  const facebookAuthUrl = `https://www.facebook.com/v17.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}&auth_type=rerequest`;
+  res.redirect(facebookAuthUrl);
+});
+
+// Facebook OAuth Callback
+app.get("/api/auth/callback/facebook", async (req, res) => {
+  const code = req.query.code;
+
+  if (!code) {
+    return res.status(400).json({
+      status: "error",
+      message: "Missing authorization code",
+    });
+  }
+
+  try {
+    const tokenResponse = await axios.get(
+      "https://graph.facebook.com/v17.0/oauth/access_token",
+      {
+        params: {
+          client_id: process.env.FACEBOOK_APP_ID,
+          client_secret: process.env.FACEBOOK_APP_SECRET,
+          redirect_uri: process.env.FACEBOOK_CALLBACK_URL,
+          code: code,
+        },
+      },
+    );
+
+    const facebookAccessToken = tokenResponse.data.access_token;
+
+    if (!facebookAccessToken) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to get access token from Facebook",
+      });
+    }
+
+    const userResponse = await axios.get("https://graph.facebook.com/me", {
+      params: {
+        fields: "id,name,email,picture",
+        access_token: facebookAccessToken,
+      },
+    });
+
+    const facebookUser = userResponse.data;
+    const email =
+      facebookUser.email || `facebook_${facebookUser.id}@kos-system.local`;
+
+    const connection = await db.getConnection();
+    const [existingUser] = await connection.query(
+      "SELECT * FROM users WHERE email = ? OR oauth_id = ?",
+      [email, facebookUser.id.toString()],
+    );
+
+    let userId;
+
+    if (existingUser.length > 0) {
+      userId = existingUser[0].id;
+      await connection.query(
+        "UPDATE users SET oauth_provider = ?, oauth_id = ?, avatar_url = ?, updated_at = NOW() WHERE id = ?",
+        [
+          "facebook",
+          facebookUser.id.toString(),
+          facebookUser.picture?.data?.url,
+          userId,
+        ],
+      );
+    } else {
+      const [result] = await connection.query(
+        "INSERT INTO users (name, email, oauth_provider, oauth_id, avatar_url, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
+        [
+          facebookUser.name,
+          email,
+          "facebook",
+          facebookUser.id.toString(),
+          facebookUser.picture?.data?.url,
+        ],
+      );
+      userId = result.insertId;
+    }
+
+    connection.release();
+
+    // Generate tokens
+    const user = { id: userId, email: email };
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    await saveRefreshToken(userId, refreshToken);
+
+    res.json({
+      status: "success",
+      message: "Facebook authentication successful",
+      accessToken,
+      refreshToken,
+      user: {
+        id: userId,
+        email: email,
+        name: facebookUser.name,
+        avatar: facebookUser.picture?.data?.url,
+        provider: "facebook",
+      },
+    });
+  } catch (error) {
+    console.error("[Auth] Facebook OAuth Error:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Facebook authentication failed",
+      error: error.message,
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[Auth Service] Running on port ${PORT}`);
   console.log(`[Auth Service] Environment: ${process.env.NODE_ENV}`);
-  console.log(
-    `[Auth Service] GitHub OAuth: ${process.env.GITHUB_CLIENT_ID ? "Configured" : "Not configured"}`,
-  );
 });
