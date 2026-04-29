@@ -1,0 +1,196 @@
+# ============================================
+# DEPENDENCIES & PACKAGES
+# ============================================
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PHP Composer
+vendor/
+composer.lock
+
+# ============================================
+# ENVIRONMENT & CREDENTIALS
+# ============================================
+
+# Environment variables (SENSITIVE!)
+.env
+.env.local
+.env.*.local
+.env.backup
+
+# ============================================
+# IDE & EDITOR
+# ============================================
+
+# VS Code
+.vscode/
+.vscode-server/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+.vim/
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# OS FILES
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.app
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.Trash-*
+
+# ============================================
+# BUILD & COMPILED
+# ============================================
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# PHP Cache
+*.cache
+
+# ============================================
+# DATABASE & LOGS
+# ============================================
+
+# MySQL Dumps
+*.sql
+*.dump
+*.sql.gz
+
+# Log files
+*.log
+logs/
+
+# PHP Logs (CodeIgniter)
+writable/logs/
+writable/cache/
+writable/debugbar/
+writable/uploads/
+
+# ============================================
+# TESTING
+# ============================================
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Jest
+junit.xml
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+
+# OS temp files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Yarn
+.yarn-integrity
+
+# ============================================
+# PROJECT SPECIFIC
+# ============================================
+
+# Local database backups
+*.backup
+
+# Session files
+session/
+
+# Compiled PHP files (if any)
+*.class
+*.o
+
+# ============================================
+# DOCUMENTATION (Optional - uncomment if needed)
+# ============================================
+
+# Keep documentation but ignore temp doc files
+# *.md - commented out, keep markdown docs
+# !README.md
+# !API_ENDPOINTS.md
+# !API_TESTING_GUIDE.md
+
+# ============================================
+# POSTMAN
+# ============================================
+
+# Postman environment files
+postman/environment.json
+postman/*.json
+
+# ============================================
+# VSCODE EXTENSIONS
+# ============================================
+
+.vscode/extensions/
+
+# ============================================
+# MISC
+# ============================================
+
+# Mac
+.AppleDouble/
+.LSOverride
+
+# npm
+npm-debug.log
+
+# yarn
+yarn-error.log
+
+# IDEs
+.vscode
+.idea
+
+# OS
+Thumbs.db
+
+# ============================================
+# INCLUDE IMPORTANT FILES (whitelist)
+# ============================================
+
+# Force include important files (uncomment if .gitignore blocks them)
+# !.gitignore
+# !.gitattributes
+# !package.json
+# !package-lock.json (usually excluded but can force include)
