@@ -3,7 +3,10 @@ const cors = require("cors");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const {
+  createProxyMiddleware,
+  fixRequestBody,
+} = require("http-proxy-middleware");
 
 dotenv.config();
 
@@ -54,6 +57,7 @@ app.use(
     target: process.env.AUTH_SERVICE_URL || "http://localhost:3001",
     changeOrigin: true,
     logLevel: "debug",
+    onProxyReq: fixRequestBody,
     onError: (err, req, res) => {
       console.error("[Gateway] Auth Service Error:", err.message);
       res.status(503).json({
@@ -71,6 +75,7 @@ app.use(
     target: process.env.PROPERTY_SERVICE_URL || "http://localhost:3002",
     changeOrigin: true,
     logLevel: "debug",
+    onProxyReq: fixRequestBody,
     onError: (err, req, res) => {
       console.error("[Gateway] Property Service Error:", err.message);
       res.status(503).json({
