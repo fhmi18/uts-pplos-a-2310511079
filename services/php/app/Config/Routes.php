@@ -10,14 +10,14 @@ $routes->get('/', 'Home::index');
 $routes->group('api', static function ($routes) {
     $routes->get('property/health', 'Property::health');
 
-    // Facilities endpoints
-    $routes->get('facilities', 'Facility::index');
-    $routes->post('facilities', 'Facility::create');
-    $routes->get('facilities/(:num)', 'Facility::show/$1');
-
     // Property endpoints
     $routes->get('property', 'Property::index');
     $routes->post('property', 'Property::create');
+
+    // Facilities endpoints (nested under property)
+    $routes->get('property/(:num)/facilities', 'Facility::index/$1');
+    $routes->post('property/(:num)/facilities', 'Facility::create/$1');
+    $routes->get('property/(:num)/facilities/(:num)', 'Facility::show/$1/$2');
 
     // Room endpoints (nested under property)
     $routes->get('property/(:num)/rooms', 'Room::index/$1');

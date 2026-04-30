@@ -93,6 +93,7 @@ app.use(
     target: process.env.BOOKING_SERVICE_URL || "http://localhost:3003",
     changeOrigin: true,
     logLevel: "debug",
+    onProxyReq: fixRequestBody,
     onError: (err, req, res) => {
       console.error("[Gateway] Booking Service Error:", err.message);
       res.status(503).json({
