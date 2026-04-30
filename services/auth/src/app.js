@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const generateAccessToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, role: user.role || 'user' },
     process.env.JWT_ACCESS_SECRET,
     { expiresIn: process.env.JWT_ACCESS_EXPIRES },
   );
