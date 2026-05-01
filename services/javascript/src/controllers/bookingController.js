@@ -1,14 +1,64 @@
 const BookingModel = require("../models/bookingModel");
+const axios = require("axios");
 
 exports.getAllBookings = async (req, res) => {
   try {
-    let bookings;
-    if (req.user.role === "tenant") {
-      bookings = await BookingModel.getAllBookingsByTenant(req.user.id);
-    } else {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    let bookings = [];
+    if (userRole === "tenant") {
+      bookings = await BookingModel.getAllBookingsByTenant(userId);
+    } else if (userRole === "owner") {
       bookings = await BookingModel.getAllBookings();
     }
-    res.status(200).json({ status: "success", data: bookings });
+
+    if (!bookings || bookings.length === 0) {
+      return res.status(200).json({ status: "success", data: [] });
+    }
+
+    const uniqueTenantIds = [...new Set(bookings.map((b) => b.tenant_id))];
+    const tenantDataMap = {};
+
+    try {
+      const userRequests = uniqueTenantIds.map((id) =>
+        axios.get(`http://localhost:3001/api/auth/users/${id}`),
+      );
+
+      const userResponses = await Promise.allSettled(userRequests);
+      userResponses.forEach((response, index) => {
+        const currentTenantId = uniqueTenantIds[index];
+        if (response.status === "fulfilled") {
+          tenantDataMap[currentTenantId] = response.value.data.data;
+        } else {
+          console.log(
+            `[Warning] Gagal mengambil profil untuk tenant_id: ${currentTenantId}`,
+          );
+          tenantDataMap[currentTenantId] = {
+            id: currentTenantId,
+            name: "Unknown User",
+            email: "-",
+          };
+        }
+      });
+    } catch (error) {
+      console.log(
+        "[Error] Gagal berkomunikasi dengan Auth Service secara keseluruhan",
+      );
+    }
+
+    const enrichedBookings = bookings.map((booking) => {
+      return {
+        ...booking,
+        tenant_info: tenantDataMap[booking.tenant_id] || null,
+      };
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Berhasil memuat daftar pesanan beserta profil penyewa",
+      data: enrichedBookings,
+    });
   } catch (error) {
     res.status(500).json({ status: "error", error: error.message });
   }
@@ -24,14 +74,26 @@ exports.getBookingById = async (req, res) => {
         .json({ status: "error", message: "Booking tidak ditemukan" });
     }
 
-    // Proteksi: Tenant hanya bisa melihat detail booking-nya sendiri
+    let tenantProfile = null;
+    try {
+      const authResponse = await axios.get(
+        `http://localhost:3001/api/auth/users/${booking.tenant_id}`,
+      );
+      tenantProfile = authResponse.data.data;
+    } catch (error) {
+      console.log("Gagal mengambil data user dari Auth Service");
+    }
+
     if (req.user.role === "tenant" && booking.tenant_id !== req.user.id) {
       return res
         .status(403)
         .json({ status: "error", message: "Akses ditolak" });
     }
 
-    res.status(200).json({ status: "success", data: booking });
+    res.status(200).json({
+      status: "success",
+      data: { ...booking, tenant_info: tenantProfile },
+    });
   } catch (error) {
     res.status(500).json({ status: "error", error: error.message });
   }
