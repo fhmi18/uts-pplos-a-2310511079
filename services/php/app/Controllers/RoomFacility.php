@@ -2,14 +2,13 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\RESTful\ResourceController;
 use CodeIgniter\API\ResponseTrait;
 use App\Models\PropertyModel;
 use App\Models\RoomModel;
 use App\Models\RoomFacilityModel;
 use App\Models\FacilityModel;
 
-class RoomFacility extends ResourceController
+class RoomFacility extends BaseAPIController
 {
     use ResponseTrait;
 
@@ -54,14 +53,12 @@ class RoomFacility extends ResourceController
     public function create($propertyId = null, $roomId = null)
     {
         try {
-            $token = $this->getTokenFromHeader();
-            $decoded = $this->verifyJWT($token);
-            if (!$decoded || strtolower($decoded->role) !== 'owner') {
+            if (!$this->currentUser || !isset($this->currentUser->role) || strtolower($this->currentUser->role) !== 'owner') {
                 return $this->fail('Unauthorized: Only owners can manage facilities', 401);
             }
 
             $property = $this->propertyModel->find($propertyId);
-            if (!$property || $property['owner_id'] != $decoded->id) {
+            if (!$property || $property['owner_id'] != $this->currentUser->id) {
                 return $this->failForbidden('You can only manage facilities in your own properties');
             }
 
@@ -94,35 +91,6 @@ class RoomFacility extends ResourceController
 
         } catch (\Exception $e) {
             return $this->fail($e->getMessage(), 500);
-        }
-    }
-
-    protected function getTokenFromHeader()
-    {
-        $header = $this->request->getHeaderLine('Authorization');
-        if (preg_match('/Bearer\s+(.+)/', $header, $matches)) {
-            return $matches[1];
-        }
-        return null;
-    }
-
-    protected function verifyJWT($token)
-    {
-        if (!$token)
-            return null;
-        try {
-            $secret = getenv('JWT_SECRET');
-            $parts = explode('.', $token);
-            if (count($parts) !== 3)
-                return null;
-
-            $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])));
-            if (isset($payload->exp) && $payload->exp < time())
-                return null;
-
-            return $payload;
-        } catch (\Exception $e) {
-            return null;
         }
     }
 }

@@ -2,13 +2,12 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\RESTful\ResourceController;
 use CodeIgniter\API\ResponseTrait;
 use App\Models\PropertyModel;
 use App\Models\RoomModel;
 use App\Models\RoomFacilityModel;
 
-class Room extends ResourceController
+class Room extends BaseAPIController
 {
     use ResponseTrait;
 
@@ -140,23 +139,14 @@ class Room extends ResourceController
                 ], 400);
             }
 
-            $token = $this->getTokenFromHeader();
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
             if (!$hasOwnerRole) {
                 return $this->respond([
                     'status' => 'error',
@@ -173,7 +163,7 @@ class Room extends ResourceController
                 ], 404);
             }
 
-            if ($property['owner_id'] != $decoded->id) {
+            if ($property['owner_id'] != $this->currentUser->id) {
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'You can only manage rooms in your own properties',
@@ -241,23 +231,14 @@ class Room extends ResourceController
                 ], 400);
             }
 
-            $token = $this->getTokenFromHeader();
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
             if (!$hasOwnerRole) {
                 return $this->respond([
                     'status' => 'error',
@@ -274,7 +255,7 @@ class Room extends ResourceController
                 ], 404);
             }
 
-            if ($property['owner_id'] != $decoded->id) {
+            if ($property['owner_id'] != $this->currentUser->id) {
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'You can only manage rooms in your own properties',
@@ -354,23 +335,14 @@ class Room extends ResourceController
                 ], 400);
             }
 
-            $token = $this->getTokenFromHeader();
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
             if (!$hasOwnerRole) {
                 return $this->respond([
                     'status' => 'error',
@@ -387,7 +359,7 @@ class Room extends ResourceController
                 ], 404);
             }
 
-            if ($property['owner_id'] != $decoded->id) {
+            if ($property['owner_id'] != $this->currentUser->id) {
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'You can only manage rooms in your own properties',
@@ -415,46 +387,6 @@ class Room extends ResourceController
                 'message' => 'Failed to delete room',
                 'error' => $e->getMessage(),
             ], 500);
-        }
-    }
-
-    // Helper: Extract token from Authorization header
-    private function getTokenFromHeader()
-    {
-        $authHeader = $this->request->getHeader('Authorization');
-
-        if (!$authHeader) {
-            return null;
-        }
-
-        $headerValue = $authHeader->getValue();
-
-        if (preg_match('/Bearer\s(\S+)/', $headerValue, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
-    }
-
-    // Helper: Verify JWT token
-    private function verifyJWT($token)
-    {
-        try {
-            $parts = explode('.', $token);
-
-            if (count($parts) !== 3) {
-                return null;
-            }
-
-            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')));
-
-            if (isset($payload->exp) && $payload->exp < time()) {
-                return null;
-            }
-
-            return $payload;
-        } catch (\Exception $e) {
-            return null;
         }
     }
 }

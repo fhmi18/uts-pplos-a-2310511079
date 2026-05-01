@@ -2,11 +2,10 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\RESTful\ResourceController;
 use CodeIgniter\API\ResponseTrait;
 use App\Models\FacilityModel;
 
-class Facility extends ResourceController
+class Facility extends BaseAPIController
 {
     use ResponseTrait;
 
@@ -83,23 +82,14 @@ class Facility extends ResourceController
     public function create()
     {
         try {
-            $token = $this->getTokenFromHeader();
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
             if (!$hasOwnerRole) {
                 return $this->respond([
                     'status' => 'error',
@@ -145,38 +135,6 @@ class Facility extends ResourceController
                 'message' => 'Failed to create facility',
                 'error' => $e->getMessage(),
             ], 500);
-        }
-    }
-
-    /**
-     * Helper: Extract token from Authorization header
-     */
-    protected function getTokenFromHeader()
-    {
-        $header = $this->request->getHeaderLine('Authorization');
-        if (preg_match('/Bearer\s+(.+)/', $header, $matches)) {
-            return $matches[1];
-        }
-        return null;
-    }
-
-    /**
-     * Helper: Verify JWT token
-     */
-    protected function verifyJWT($token)
-    {
-        $secret = 'UTS_SE-2_2026_A_2310511079';
-
-        try {
-            $decoded = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], explode('.', $token)[1])));
-
-            if (!isset($decoded->exp) || $decoded->exp < time()) {
-                return null;
-            }
-
-            return $decoded;
-        } catch (\Exception $e) {
-            return null;
         }
     }
 }

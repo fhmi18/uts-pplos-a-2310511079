@@ -2,11 +2,10 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\RESTful\ResourceController;
 use CodeIgniter\API\ResponseTrait;
 use App\Models\PropertyModel;
 
-class Property extends ResourceController
+class Property extends BaseAPIController
 {
     use ResponseTrait;
 
@@ -31,9 +30,12 @@ class Property extends ResourceController
     public function index()
     {
         try {
+            $page = (int) ($this->request->getVar('page') ?? 1);
+            $perPage = (int) ($this->request->getVar('per_page') ?? 10);
+
             $filters = [
-                'limit' => (int) ($this->request->getVar('limit') ?? 10),
-                'offset' => (int) ($this->request->getVar('offset') ?? 0),
+                'limit' => $perPage,
+                'offset' => ($page - 1) * $perPage,
             ];
 
             $city = $this->request->getVar('city');
@@ -60,6 +62,8 @@ class Property extends ResourceController
                 'data' => $result['data'],
                 'pagination' => [
                     'total' => $result['total'],
+                    'page' => $page,
+                    'per_page' => $perPage,
                     'limit' => $result['limit'],
                     'offset' => $result['offset'],
                 ],
@@ -77,38 +81,27 @@ class Property extends ResourceController
     public function create()
     {
         try {
-            $token = $this->getTokenFromHeader();
-
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
 
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
-
-            if (!$hasOwnerRole && !isset($decoded->role)) {
+            if (!$hasOwnerRole && !isset($this->currentUser->role)) {
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'Token missing role information. Please login again.',
-                    'debug' => 'Token payload: ' . json_encode($decoded),
+                    'debug' => 'User payload: ' . json_encode($this->currentUser),
                 ], 401);
             }
 
             if (!$hasOwnerRole) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'Only owners can create properties. Your role: ' . $decoded->role,
+                    'message' => 'Only owners can create properties. Your role: ' . $this->currentUser->role,
                 ], 403);
             }
 
@@ -118,11 +111,11 @@ class Property extends ResourceController
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'Name and address are required',
-                ], 400);
+                ], 422);
             }
 
             $propertyData = [
-                'owner_id' => $decoded->id,
+                'owner_id' => $this->currentUser->id,
                 'name' => $data->name,
                 'address' => $data->address,
                 'description' => $data->description ?? null,
@@ -203,25 +196,14 @@ class Property extends ResourceController
                 ], 400);
             }
 
-            $token = $this->getTokenFromHeader();
-
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
-
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
 
             if (!$hasOwnerRole) {
                 return $this->respond([
@@ -241,7 +223,7 @@ class Property extends ResourceController
             }
 
             // Check if user owns this property
-            if ($property['owner_id'] != $decoded->id) {
+            if ($property['owner_id'] != $this->currentUser->id) {
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'You can only update your own properties',
@@ -284,7 +266,7 @@ class Property extends ResourceController
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'No fields to update',
-                ], 400);
+                ], 422);
             }
 
             $this->propertyModel->update($id, $updateData);
@@ -316,25 +298,14 @@ class Property extends ResourceController
                 ], 400);
             }
 
-            $token = $this->getTokenFromHeader();
-
-            if (!$token) {
+            if (!$this->currentUser) {
                 return $this->respond([
                     'status' => 'error',
-                    'message' => 'No token provided',
+                    'message' => 'Unauthorized: Missing user information from gateway.',
                 ], 401);
             }
 
-            $decoded = $this->verifyJWT($token);
-
-            if (!$decoded) {
-                return $this->respond([
-                    'status' => 'error',
-                    'message' => 'Invalid or expired token',
-                ], 401);
-            }
-
-            $hasOwnerRole = isset($decoded->role) && strtolower($decoded->role) === 'owner';
+            $hasOwnerRole = isset($this->currentUser->role) && strtolower($this->currentUser->role) === 'owner';
 
             if (!$hasOwnerRole) {
                 return $this->respond([
@@ -354,7 +325,7 @@ class Property extends ResourceController
             }
 
             // Check if user owns this property
-            if ($property['owner_id'] != $decoded->id) {
+            if ($property['owner_id'] != $this->currentUser->id) {
                 return $this->respond([
                     'status' => 'error',
                     'message' => 'You can only delete your own properties',
@@ -363,56 +334,13 @@ class Property extends ResourceController
 
             $this->propertyModel->delete($id);
 
-            return $this->respond([
-                'status' => 'success',
-                'message' => 'Property deleted successfully',
-            ], 200);
+            return $this->response->setStatusCode(204);
         } catch (\Exception $e) {
             return $this->respond([
                 'status' => 'error',
                 'message' => 'Failed to delete property',
                 'error' => $e->getMessage(),
             ], 500);
-        }
-    }
-
-    // Helper: Extract token from Authorization header
-    private function getTokenFromHeader()
-    {
-        $authHeader = $this->request->getHeader('Authorization');
-
-        if (!$authHeader) {
-            return null;
-        }
-
-        $headerValue = $authHeader->getValue();
-
-        if (preg_match('/Bearer\s(\S+)/', $headerValue, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
-    }
-
-    // Helper: Verify JWT token (simple validation)
-    private function verifyJWT($token)
-    {
-        try {
-            $parts = explode('.', $token);
-
-            if (count($parts) !== 3) {
-                return null;
-            }
-
-            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')));
-
-            if (isset($payload->exp) && $payload->exp < time()) {
-                return null;
-            }
-
-            return $payload;
-        } catch (\Exception $e) {
-            return null;
         }
     }
 }

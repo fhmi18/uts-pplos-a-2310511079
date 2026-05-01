@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const generateAccessToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role || 'user' },
+    { id: user.id, email: user.email, role: user.role || "user" },
     process.env.JWT_ACCESS_SECRET,
     { expiresIn: process.env.JWT_ACCESS_EXPIRES },
   );
@@ -86,14 +86,14 @@ app.post("/api/auth/register", async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
-    return res.status(400).json({
+    return res.status(422).json({
       status: "error",
       message: "Name, email, and password are required",
     });
   }
 
   if (password.length < 6) {
-    return res.status(400).json({
+    return res.status(422).json({
       status: "error",
       message: "Password must be at least 6 characters long",
     });
@@ -162,7 +162,7 @@ app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({
+    return res.status(422).json({
       status: "error",
       message: "Email and password are required",
     });

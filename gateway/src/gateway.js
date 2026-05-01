@@ -169,6 +169,24 @@ app.use(
   }),
 );
 
+app.use(
+  "/api/payment",
+  createProxyMiddleware({
+    target: process.env.BOOKING_SERVICE_URL || "http://localhost:3003",
+    changeOrigin: true,
+    logLevel: "debug",
+    onProxyReq: fixRequestBody,
+    onError: (err, req, res) => {
+      console.error("[Gateway] Payment Service Error:", err.message);
+      res.status(503).json({
+        status: "error",
+        message: "Payment Service unavailable",
+        details: err.message,
+      });
+    },
+  }),
+);
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({
@@ -200,6 +218,9 @@ app.listen(PORT, () => {
   );
   console.log(
     `  /api/booking   -> ${process.env.BOOKING_SERVICE_URL || "http://localhost:3003"}`,
+  );
+  console.log(
+    `  /api/payment   -> ${process.env.BOOKING_SERVICE_URL || "http://localhost:3003"}`,
   );
   console.log(
     `\n[Health Check] GET http://localhost:${PORT}/api/gateway/health\n`,

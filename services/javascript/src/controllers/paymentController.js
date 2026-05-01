@@ -139,7 +139,7 @@ exports.updatePaymentStatus = async (req, res) => {
     }
 
     if (!["pending", "success", "failed"].includes(status)) {
-      return res.status(400).json({
+      return res.status(422).json({
         status: "error",
         message: "Status harus bernilai 'pending', 'success', atau 'failed'",
       });
