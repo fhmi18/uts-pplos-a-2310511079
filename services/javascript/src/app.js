@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const db = require("./config/database");
 const bookingRoutes = require("./routes/bookingRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -30,6 +31,7 @@ app.get("/api/booking/health", async (req, res) => {
 
 // Routes
 app.use("/api/booking", bookingRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // Start Server
 app.listen(PORT, () => {
