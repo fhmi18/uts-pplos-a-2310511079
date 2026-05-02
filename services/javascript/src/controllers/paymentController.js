@@ -17,6 +17,15 @@ exports.createPayment = async (req, res) => {
       });
     }
 
+    const validPaymentMethods = ["transfer", "cash", "card", "e-wallet"];
+    if (paymentMethod && !validPaymentMethods.includes(paymentMethod)) {
+      return res.status(422).json({
+        status: "error",
+        message:
+          "Metode pembayaran harus berupa 'transfer', 'cash', 'card', atau 'e-wallet'",
+      });
+    }
+
     const booking = await BookingModel.getBookingById(bookingId);
     if (!booking) {
       return res
@@ -47,42 +56,6 @@ exports.createPayment = async (req, res) => {
         "Data pembayaran berhasil dicatat dan sedang menunggu konfirmasi",
       data: { paymentId },
     });
-  } catch (error) {
-    res.status(500).json({ status: "error", error: error.message });
-  }
-};
-
-exports.getBookingPayments = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-
-    const payments = await PaymentModel.getPaymentsByBookingId(bookingId);
-    if (payments.length === 0) {
-      return res.status(200).json({ status: "success", data: [] });
-    }
-
-    const tenantId = payments[0].tenant_id;
-
-    let tenantName = "Unknown User";
-    try {
-      const authResponse = await axios.get(
-        `http://localhost:3001/api/auth/users/${tenantId}`,
-      );
-      tenantName = authResponse.data.data.name;
-    } catch (error) {
-      console.log(
-        `[Warning] Gagal memuat nama user untuk tenant_id ${tenantId}`,
-      );
-    }
-
-    const paymentsWithUserInfo = payments.map((payment) => {
-      return {
-        ...payment,
-        tenant_name: tenantName,
-      };
-    });
-
-    res.status(200).json({ status: "success", data: paymentsWithUserInfo });
   } catch (error) {
     res.status(500).json({ status: "error", error: error.message });
   }
@@ -166,9 +139,7 @@ exports.updatePaymentStatus = async (req, res) => {
     );
 
     if (status === "success") {
-      await BookingModel.updateBooking(currentPayment.booking_id, {
-        status: "active",
-      });
+      await BookingModel.updateBooking(currentPayment.booking_id, "active");
     }
 
     res.status(200).json({

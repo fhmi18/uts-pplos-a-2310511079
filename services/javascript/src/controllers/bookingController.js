@@ -113,7 +113,7 @@ exports.createBooking = async (req, res) => {
 
     if (!propertyId || !roomId || !startDate || !endDate || !totalPrice) {
       return res
-        .status(400)
+        .status(422)
         .json({ status: "error", message: "Data input tidak lengkap" });
     }
 
@@ -145,7 +145,7 @@ exports.updateBooking = async (req, res) => {
 
     if (!status && notes === undefined) {
       return res
-        .status(400)
+        .status(422)
         .json({ status: "error", message: "Tidak ada data yang diupdate" });
     }
 
@@ -192,14 +192,13 @@ exports.checkAvailability = async (req, res) => {
     const { roomId } = req.params;
 
     if (!startDate || !endDate || !propertyId) {
-      return res.status(400).json({
+      return res.status(422).json({
         status: "error",
         message:
           "Parameter startDate, endDate, dan propertyId wajib disertakan dalam query string",
       });
     }
 
-    const BookingModel = require("../models/bookingModel");
     const isAvailable = await BookingModel.checkAvailability(
       roomId,
       startDate,
@@ -208,7 +207,6 @@ exports.checkAvailability = async (req, res) => {
 
     let roomDetails = null;
     try {
-      const axios = require("axios");
       const propertyServiceUrl = `http://localhost:3002/api/property/${propertyId}/rooms/${roomId}`;
       const response = await axios.get(propertyServiceUrl);
 

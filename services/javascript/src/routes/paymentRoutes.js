@@ -5,9 +5,8 @@ const { verifyJWT } = require("../middleware/jwtMiddleware");
 
 router.use(verifyJWT);
 
-router.get("/booking/:bookingId", paymentController.getBookingPayments);
 router.post("/booking/:bookingId", paymentController.createPayment);
 router.get("/:paymentId", paymentController.getPaymentDetail);
-router.put("/:paymentId", paymentController.updatePaymentStatus);
+router.put("/:paymentId/status", paymentController.updatePaymentStatus);
 
 module.exports = router;
