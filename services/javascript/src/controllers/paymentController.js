@@ -1,6 +1,7 @@
 const PaymentModel = require("../models/paymentModel");
 const BookingModel = require("../models/bookingModel");
 const axios = require("axios");
+const { publishMessage } = require("../utils/rabbitmq");
 
 exports.createPayment = async (req, res) => {
   try {
@@ -48,6 +49,22 @@ exports.createPayment = async (req, res) => {
       paymentMethod,
       referenceNumber,
       notes,
+    });
+
+    // Publish event ke RabbitMQ
+    publishMessage("payment_events", {
+      event_type: "payment_created",
+      id: paymentId,
+      data: {
+        bookingId,
+        tenantId: userId,
+        amount,
+        paymentDate,
+        paymentMethod,
+        referenceNumber,
+        notes,
+      },
+      timestamp: new Date().toISOString()
     });
 
     res.status(201).json({
@@ -141,6 +158,15 @@ exports.updatePaymentStatus = async (req, res) => {
     if (status === "success") {
       await BookingModel.updateBooking(currentPayment.booking_id, "active");
     }
+
+    // Publish event ke RabbitMQ
+    publishMessage("payment_events", {
+      event_type: `payment_status_updated_${status}`,
+      id: paymentId,
+      status: status,
+      booking_id: currentPayment.booking_id,
+      timestamp: new Date().toISOString()
+    });
 
     res.status(200).json({
       status: "success",

@@ -4,7 +4,7 @@ Repositori ini berisi implementasi tugas Ujian Tengah Semester (UTS) mata kuliah
 
 ## 👨‍💻 Identitas Mahasiswa
 
-- **Nama:** [NAMA ANDA]
+- **Nama:** Muhammad Fahmi Idrus
 - **NIM:** 2310511079
 - **Kelas:** PPLOS - A
 - **Repository:** `uts-pplos-a-2310511079`
@@ -13,14 +13,16 @@ Repositori ini berisi implementasi tugas Ujian Tengah Semester (UTS) mata kuliah
 
 ## 🏗️ Struktur Arsitektur
 
-Sistem ini terdiri dari 1 API Gateway dan 3 Microservices independen:
+Sistem ini terdiri dari 1 API Gateway, 3 Microservices independen, dan 1 Message Broker:
 
-1. **API Gateway (Node.js)** - Single entry point, JWT Middleware, Rate Limiting (Port `3004`).
+1. **API Gateway (Node.js)** - Single entry point, JWT Middleware, Rate Limiting, Request Logging (Port `3004`).
 2. **Auth Service (Node.js)** - Menangani registrasi, login lokal, login OAuth (GitHub, Google, Facebook), dan manajemen data profil/token (Port `3001`).
 3. **Property Service (PHP / CodeIgniter 4)** - Menangani manajemen data properti, kamar, dan fasilitas secara dinamis (Port `3002`).
 4. **Booking & Payment Service (Node.js)** - Menangani pemesanan, pengecekan ketersediaan kamar, serta transaksi pembayaran antar _tenant_ dan _owner_ (Port `3003`).
+5. **Message Broker (RabbitMQ)** - Menangani komunikasi asinkron (Event-Driven Architecture) antar layanan seperti notifikasi pengiriman, update status tersinkronisasi, dan toleransi kesalahan (_fault tolerance_) (Port `5672`).
 
 _Catatan: Masing-masing service memiliki database yang terisolasi secara independen (db_auth, db_property, db_booking) dan saling berkomunikasi menggunakan REST API melalui Axios._
+_Catatan: Masing-masing service memiliki database yang terisolasi secara independen (db_auth, db_property, db_booking). Komunikasi synchronous menggunakan REST API (Axios), sedangkan asynchronous menggunakan Message Broker._
 
 ## 🚀 Cara Menjalankan Aplikasi
 
@@ -32,6 +34,7 @@ Pastikan Anda telah menginstal:
 - PHP (versi 8.1 atau lebih baru)
 - Composer
 - MySQL / MariaDB (XAMPP/MAMP)
+- RabbitMQ (Erlang) berjalan di localhost port 5672
 
 ### 1. Persiapan Database
 
@@ -100,6 +103,7 @@ Semua lalu lintas (klien/Postman) **WAJIB** mengakses melalui API Gateway (`http
 - **Rate Limiting:**
   - Global: Maksimal 60 request / menit per IP.
   - Strict (Login/Refresh): Maksimal 10 request / 15 menit per IP (mencegah _Brute Force_).
+- **Request Logging:** Mencatat setiap request yang masuk (HTTP method, URL, status code, response time) menggunakan `morgan` di API Gateway untuk keperluan _monitoring_ dan _debugging_.
 
 ## ✨ Fitur Unggulan Sistem
 

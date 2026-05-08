@@ -1,5 +1,6 @@
 const BookingModel = require("../models/bookingModel");
 const axios = require("axios");
+const { publishMessage } = require("../utils/rabbitmq");
 
 exports.getAllBookings = async (req, res) => {
   try {
@@ -129,10 +130,20 @@ exports.createBooking = async (req, res) => {
 
     const newBookingId = await BookingModel.createBooking(bookingData);
 
+    const bookingPayload = { id: newBookingId, ...bookingData, status: "pending" };
+
+    // Publish event ke RabbitMQ
+    publishMessage("booking_events", {
+      event_type: "booking_created",
+      id: newBookingId,
+      data: bookingPayload,
+      timestamp: new Date().toISOString()
+    });
+
     res.status(201).json({
       status: "success",
       message: "Booking berhasil dibuat",
-      data: { id: newBookingId, ...bookingData, status: "pending" },
+      data: bookingPayload,
     });
   } catch (error) {
     res.status(500).json({ status: "error", error: error.message });
