@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 menit
-  max: 60, // maks 60 request per IP
+  max: 5, // maks 5 request per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: {
