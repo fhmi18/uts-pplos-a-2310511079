@@ -1,0 +1,338 @@
+{
+  "info": {
+    "_postman_id": "kos-ml-service-collection",
+    "name": "Kos Room Recommendation ML Service",
+    "description": "Collection untuk testing Python ML Service - Gateway, Express.js, dan Direct Python",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Via API Gateway (Port 3004)",
+      "item": [
+        {
+          "name": "POST Recommend Room - Via Gateway",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"user-001\",\n  \"room_id\": \"room-001\",\n  \"features\": {\n    \"price\": 1200000,\n    \"room_size_m2\": 12,\n    \"distance_to_campus_km\": 1.5,\n    \"has_wifi\": 1,\n    \"has_ac\": 1,\n    \"has_private_bathroom\": 1,\n    \"facility_count\": 6,\n    \"occupancy_rate\": 0.65,\n    \"user_budget\": 1500000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gateway_base_url}}/api/ml/recommend-room",
+              "host": ["{{gateway_base_url}}"],
+              "path": ["api", "ml", "recommend-room"]
+            },
+            "description": "Request room recommendation via API Gateway (single entry point)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Direct Predict - Via Gateway",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1200000,\n  \"room_size_m2\": 12,\n  \"distance_to_campus_km\": 1.5,\n  \"has_wifi\": 1,\n  \"has_ac\": 1,\n  \"has_private_bathroom\": 1,\n  \"facility_count\": 6,\n  \"occupancy_rate\": 0.65,\n  \"user_budget\": 1500000\n}"
+            },
+            "url": {
+              "raw": "{{gateway_base_url}}/api/ml/predict",
+              "host": ["{{gateway_base_url}}"],
+              "path": ["api", "ml", "predict"]
+            },
+            "description": "Direct prediction endpoint via API Gateway - tanpa wrapper, langsung ke Python format"
+          },
+          "response": []
+        },
+        {
+          "name": "GET ML Service Health - Via Gateway",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_base_url}}/api/ml/health",
+              "host": ["{{gateway_base_url}}"],
+              "path": ["api", "ml", "health"]
+            },
+            "description": "Check health status via API Gateway"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Circuit Breaker Status - Via Gateway",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_base_url}}/api/ml/circuit-status",
+              "host": ["{{gateway_base_url}}"],
+              "path": ["api", "ml", "circuit-status"]
+            },
+            "description": "Check circuit breaker status via API Gateway"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Express.js Service (Port 3003)",
+      "item": [
+        {
+          "name": "POST Recommend Room - Direct",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"user-001\",\n  \"room_id\": \"room-001\",\n  \"features\": {\n    \"price\": 1200000,\n    \"room_size_m2\": 12,\n    \"distance_to_campus_km\": 1.5,\n    \"has_wifi\": 1,\n    \"has_ac\": 1,\n    \"has_private_bathroom\": 1,\n    \"facility_count\": 6,\n    \"occupancy_rate\": 0.65,\n    \"user_budget\": 1500000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{express_base_url}}/api/ml/predict",
+              "host": ["{{express_base_url}}"],
+              "path": ["api", "ml", "predict"]
+            },
+            "description": "Request room recommendation directly via Express.js Service"
+          },
+          "response": []
+        },
+        {
+          "name": "GET ML Service Health - Direct",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{express_base_url}}/api/ml/health",
+              "host": ["{{express_base_url}}"],
+              "path": ["api", "ml", "health"]
+            },
+            "description": "Check health status directly via Express.js"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Circuit Breaker Status - Direct",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{express_base_url}}/api/ml/circuit-status",
+              "host": ["{{express_base_url}}"],
+              "path": ["api", "ml", "circuit-status"]
+            },
+            "description": "Check circuit breaker status directly via Express.js"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Python ML Service (Port 8000)",
+      "item": [
+        {
+          "name": "GET Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{python_base_url}}/health",
+              "host": ["{{python_base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check health status of Python ML Service"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Predict - Highly Recommended",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1200000,\n  \"room_size_m2\": 12,\n  \"distance_to_campus_km\": 1.5,\n  \"has_wifi\": 1,\n  \"has_ac\": 1,\n  \"has_private_bathroom\": 1,\n  \"facility_count\": 6,\n  \"occupancy_rate\": 0.65,\n  \"user_budget\": 1500000,\n  \"user_id\": \"user-001\",\n  \"room_id\": \"room-001\"\n}"
+            },
+            "url": {
+              "raw": "{{python_base_url}}/predict",
+              "host": ["{{python_base_url}}"],
+              "path": ["predict"]
+            },
+            "description": "Predict room recommendation (expected: highly_recommended)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Predict - Recommended",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1800000,\n  \"room_size_m2\": 10,\n  \"distance_to_campus_km\": 3.0,\n  \"has_wifi\": 1,\n  \"has_ac\": 0,\n  \"has_private_bathroom\": 0,\n  \"facility_count\": 4,\n  \"occupancy_rate\": 0.75,\n  \"user_budget\": 2000000,\n  \"user_id\": \"user-002\",\n  \"room_id\": \"room-002\"\n}"
+            },
+            "url": {
+              "raw": "{{python_base_url}}/predict",
+              "host": ["{{python_base_url}}"],
+              "path": ["predict"]
+            },
+            "description": "Predict room recommendation (expected: recommended)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Predict - Not Recommended",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 2800000,\n  \"room_size_m2\": 8,\n  \"distance_to_campus_km\": 8.0,\n  \"has_wifi\": 0,\n  \"has_ac\": 0,\n  \"has_private_bathroom\": 0,\n  \"facility_count\": 2,\n  \"occupancy_rate\": 0.9,\n  \"user_budget\": 1200000,\n  \"user_id\": \"user-003\",\n  \"room_id\": \"room-003\"\n}"
+            },
+            "url": {
+              "raw": "{{python_base_url}}/predict",
+              "host": ["{{python_base_url}}"],
+              "path": ["predict"]
+            },
+            "description": "Predict room recommendation (expected: not_recommended)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Python ML Service (Port 8000)",
+      "item": [
+        {
+          "name": "GET Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{python_base_url}}/health",
+              "host": ["{{python_base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check health status of Python ML Service"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Predict - Highly Recommended",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1200000,\n  \"room_size_m2\": 12,\n  \"distance_to_campus_km\": 1.5,\n  \"has_wifi\": 1,\n  \"has_ac\": 1,\n  \"has_private_bathroom\": 1,\n  \"facility_count\": 6,\n  \"occupancy_rate\": 0.65,\n  \"user_budget\": 1500000,\n  \"user_id\": \"user-001\",\n  \"room_id\": \"room-001\"\n}"
+            },
+            "url": {
+              "raw": "{{python_base_url}}/predict",
+              "host": ["{{python_base_url}}"],
+              "path": ["predict"]
+            },
+            "description": "Predict room recommendation (expected: highly_recommended)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Predict - Recommended",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1800000,\n  \"room_size_m2\": 10,\n  \"distance_to_campus_km\": 3.0,\n  \"has_wifi\": 1,\n  \"has_ac\": 0,\n  \"has_private_bathroom\": 0,\n  \"facility_count\": 4,\n  \"occupancy_rate\": 0.75,\n  \"user_budget\": 2000000,\n  \"user_id\": \"user-002\",\n  \"room_id\": \"room-002\"\n}"
+            },
+            "url": {
+              "raw": "{{python_base_url}}/predict",
+              "host": ["{{python_base_url}}"],
+              "path": ["predict"]
+            },
+            "description": "Predict room recommendation (expected: recommended)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Predict - Not Recommended",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 2800000,\n  \"room_size_m2\": 8,\n  \"distance_to_campus_km\": 8.0,\n  \"has_wifi\": 0,\n  \"has_ac\": 0,\n  \"has_private_bathroom\": 0,\n  \"facility_count\": 2,\n  \"occupancy_rate\": 0.9,\n  \"user_budget\": 1200000,\n  \"user_id\": \"user-003\",\n  \"room_id\": \"room-003\"\n}"
+            },
+            "url": {
+              "raw": "{{python_base_url}}/predict",
+              "host": ["{{python_base_url}}"],
+              "path": ["predict"]
+            },
+            "description": "Predict room recommendation (expected: not_recommended)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "gateway_base_url",
+      "value": "http://localhost:3004",
+      "type": "string"
+    },
+    {
+      "key": "express_base_url",
+      "value": "http://localhost:3003",
+      "type": "string"
+    },
+    {
+      "key": "python_base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}

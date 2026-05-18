@@ -1043,6 +1043,105 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "6. ML Service (Room Recommendation)",
+			"item": [
+				{
+					"name": "POST Recommend Room - Via Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"user-001\",\n  \"room_id\": \"room-001\",\n  \"features\": {\n    \"price\": 1200000,\n    \"room_size_m2\": 12,\n    \"distance_to_campus_km\": 1.5,\n    \"has_wifi\": 1,\n    \"has_ac\": 1,\n    \"has_private_bathroom\": 1,\n    \"facility_count\": 6,\n    \"occupancy_rate\": 0.65,\n    \"user_budget\": 1500000\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ml/recommend-room",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ml",
+								"recommend-room"
+							]
+						},
+						"description": "Request room recommendation via API Gateway with wrapper (user_id, room_id, features)"
+					}
+				},
+				{
+					"name": "POST Direct Predict - Via Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 1200000,\n  \"room_size_m2\": 12,\n  \"distance_to_campus_km\": 1.5,\n  \"has_wifi\": 1,\n  \"has_ac\": 1,\n  \"has_private_bathroom\": 1,\n  \"facility_count\": 6,\n  \"occupancy_rate\": 0.65,\n  \"user_budget\": 1500000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ml/predict",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ml",
+								"predict"
+							]
+						},
+						"description": "Direct prediction endpoint via API Gateway - direct Python format tanpa wrapper"
+					}
+				},
+				{
+					"name": "GET ML Service Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/ml/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ml",
+								"health"
+							]
+						},
+						"description": "Check health status of ML Service"
+					}
+				},
+				{
+					"name": "GET Circuit Breaker Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/ml/circuit-status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ml",
+								"circuit-status"
+							]
+						},
+						"description": "Check circuit breaker status of ML Service"
+					}
+				}
+			]
 		}
 	],
 	"variable": [

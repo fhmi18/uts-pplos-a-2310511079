@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 menit
-  max: 5, // maks 5 request per IP
+  max: 60, // maks 5 request per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -187,6 +187,24 @@ app.use(
   }),
 );
 
+app.use(
+  "/api/ml",
+  createProxyMiddleware({
+    target: process.env.BOOKING_SERVICE_URL || "http://localhost:3003",
+    changeOrigin: true,
+    logLevel: "debug",
+    onProxyReq: fixRequestBody,
+    onError: (err, req, res) => {
+      console.error("[Gateway] ML Service Error:", err.message);
+      res.status(503).json({
+        status: "error",
+        message: "ML Service unavailable",
+        details: err.message,
+      });
+    },
+  }),
+);
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({
@@ -221,6 +239,9 @@ app.listen(PORT, () => {
   );
   console.log(
     `  /api/payment   -> ${process.env.BOOKING_SERVICE_URL || "http://localhost:3003"}`,
+  );
+  console.log(
+    `  /api/ml        -> ${process.env.BOOKING_SERVICE_URL || "http://localhost:3003"}`,
   );
   console.log(
     `\n[Health Check] GET http://localhost:${PORT}/api/gateway/health\n`,
