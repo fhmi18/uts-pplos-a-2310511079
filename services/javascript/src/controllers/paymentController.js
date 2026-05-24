@@ -2,6 +2,7 @@ const PaymentModel = require("../models/paymentModel");
 const BookingModel = require("../models/bookingModel");
 const axios = require("axios");
 const { publishMessage } = require("../utils/rabbitmq");
+const globalTimeClient = require("../utils/globalTimeClient");
 
 exports.createPayment = async (req, res) => {
   try {
@@ -64,7 +65,7 @@ exports.createPayment = async (req, res) => {
         referenceNumber,
         notes,
       },
-      timestamp: new Date().toISOString()
+      timestamp: globalTimeClient.getSyncedTimeISO(),
     });
 
     res.status(201).json({
@@ -165,7 +166,7 @@ exports.updatePaymentStatus = async (req, res) => {
       id: paymentId,
       status: status,
       booking_id: currentPayment.booking_id,
-      timestamp: new Date().toISOString()
+      timestamp: globalTimeClient.getSyncedTimeISO(),
     });
 
     res.status(200).json({

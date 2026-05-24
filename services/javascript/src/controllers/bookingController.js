@@ -1,6 +1,7 @@
 const BookingModel = require("../models/bookingModel");
 const axios = require("axios");
 const { publishMessage } = require("../utils/rabbitmq");
+const globalTimeClient = require("../utils/globalTimeClient");
 
 exports.getAllBookings = async (req, res) => {
   try {
@@ -137,7 +138,7 @@ exports.createBooking = async (req, res) => {
       event_type: "booking_created",
       id: newBookingId,
       data: bookingPayload,
-      timestamp: new Date().toISOString()
+      timestamp: globalTimeClient.getSyncedTimeISO()
     });
 
     res.status(201).json({

@@ -329,14 +329,30 @@ Re-syncing Bandung Service...
 
 ### 6.1 Integrasi dengan Existing Codebase
 
-Kode yang dibuat dapat diintegrasikan ke dalam system existing:
+Selain membuat simulasi terpisah, modul sinkronisasi waktu ini juga diintegrasikan langsung ke dalam arsitektur _Microservices_ yang sudah ada, khususnya untuk menjaga konsistensi urutan _event_ pada sistem _Event-Driven_ menggunakan RabbitMQ.
 
-**File yang Dibuat:**
+**File yang Dibuat & Dimodifikasi:**
 
 1. `services/javascript/src/utils/timeSync.js` - Core time sync modules
-2. `services/javascript/src/services/bookingServiceWithTimeSync.js` - Business logic dengan sync
-3. `services/javascript/src/simulation/bookingTimeSync.simulation.js` - Simulasi lengkap
-4. `services/javascript/test-time-sync.js` - Test runner
+2. `services/javascript/src/utils/globalTimeClient.js` - Inisialisasi client global (Singleton)
+3. `services/javascript/src/controllers/bookingController.js` - Menggunakan waktu sinkron saat membuat booking
+4. `services/javascript/src/controllers/paymentController.js` - Menggunakan waktu sinkron saat mencatat pembayaran
+5. `services/javascript/src/simulation/bookingTimeSync.simulation.js` - Simulasi independen (Proof of Concept)
+
+**Contoh Penerapan Nyata (Publish Event RabbitMQ):**
+
+Dengan integrasi ini, pencatatan waktu untuk antrean pesan tidak lagi bergantung pada waktu lokal masing-masing _service_ (yang rawan _clock drift_), melainkan menggunakan master server.
+
+```javascript
+// Publish event ke antrean RabbitMQ
+publishMessage("booking_events", {
+  event_type: "booking_created",
+  id: newBookingId,
+  data: bookingPayload,
+  // Mencegah inkonsistensi dengan menggunakan waktu yang tersinkronisasi
+  timestamp: globalTimeClient.getSyncedTimeISO(),
+});
+```
 
 ### 6.2 Cara Menggunakan
 
