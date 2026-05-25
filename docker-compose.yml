@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: kos_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: db_booking
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./services/javascript/db_booking.sql:/docker-entrypoint-initdb.d/01-booking.sql
+      - ./services/auth/db_auth.sql:/docker-entrypoint-initdb.d/02-auth.sql
+      - ./services/php/db_property.sql:/docker-entrypoint-initdb.d/03-property.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - kos_network
+
+  auth-service:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    container_name: auth_service
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root123
+      DB_NAME: db_auth
+      DB_PORT: 3306
+      JWT_ACCESS_SECRET: UTS_SE-2_2026_A_2310511079
+      JWT_ACCESS_EXPIRES: 15m
+      JWT_REFRESH_SECRET: UTS_SE-2_2026_A_2310511079
+      JWT_REFRESH_EXPIRES: 7d
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - kos_network
+    restart: unless-stopped
+
+  booking-service:
+    build:
+      context: ./services/javascript
+      dockerfile: Dockerfile
+    container_name: booking_service
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root123
+      DB_NAME: db_booking
+      DB_PORT: 3306
+      JWT_ACCESS_SECRET: UTS_SE-2_2026_A_2310511079
+      JWT_ACCESS_EXPIRES: 15m
+      PORT: 3003
+      AUTH_SERVICE_URL: http://auth-service:3001
+      ML_SERVICE_URL: http://ml-service:5000
+    ports:
+      - "3003:3003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - kos_network
+    restart: unless-stopped
+
+  ml-service:
+    build:
+      context: ./services/python
+      dockerfile: Dockerfile
+    container_name: ml_service
+    environment:
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+    networks:
+      - kos_network
+    restart: unless-stopped
+
+  property-service:
+    build:
+      context: ./services/php
+      dockerfile: Dockerfile
+    container_name: property_service
+    environment:
+      database.default.hostname: mysql
+      database.default.username: root
+      database.default.password: root123
+      database.default.database: db_property
+      database.default.port: 3306
+      CI_ENVIRONMENT: production
+    ports:
+      - "3002:3002"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - kos_network
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    environment:
+      PORT: 3004
+      JWT_ACCESS_SECRET: UTS_SE-2_2026_A_2310511079
+      AUTH_SERVICE_URL: http://auth-service:3001
+      BOOKING_SERVICE_URL: http://booking-service:3003
+      PROPERTY_SERVICE_URL: http://property-service:3002
+      ML_SERVICE_URL: http://ml-service:5000
+    ports:
+      - "3004:3004"
+    depends_on:
+      - auth-service
+      - booking-service
+      - property-service
+      - ml-service
+    networks:
+      - kos_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  kos_network:
+    driver: bridge
